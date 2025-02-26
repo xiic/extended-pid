@@ -170,7 +170,7 @@ class PID(object):
                 # Weightened by reciprocal function
                 self._pom = self._pom - self.Kpom * d_input / (abs(error) + self.weightPom)
 
-            if (fadingAmout != 1.0):
+            if (self.fadePom != 1.0):
                 # Fade out pom term and move to I term
                 fadingAmout = self.fadePom * self._pom
                 self._pom -= fadingAmout
