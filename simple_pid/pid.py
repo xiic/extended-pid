@@ -17,6 +17,9 @@ class PID(object):
         Kp=1.0,
         Ki=0.0,
         Kd=0.0,
+        Kpom=0.0,
+        weightPom=None,
+        fadePom=1,
         setpoint=0,
         sample_time=0.01,
         output_limits=(None, None),
@@ -33,6 +36,17 @@ class PID(object):
         :param Kp: The value for the proportional gain Kp
         :param Ki: The value for the integral gain Ki
         :param Kd: The value for the derivative gain Kd
+        :param Kpom: The value for the proportional_on_measurement gain
+        :parameter weightPom: Increase weight of the proportional_on_measurement gain if the output
+            is close to the setpoint. Calculated as 1 / (abs(error) + weightPom).
+            Example: 0.01
+            Small values give it a "boost" just before it reaches the setpoint (and just after).
+            Large values lessen the difference between closer/farther from the setpoint (and reduce
+            Kpom across the whole range).
+            Set to None to disable.
+        :parameter fadePom: Factor to be use to slowly fade out the pom value and shift it over to
+            the I term.
+            Example: 0.001
         :param setpoint: The initial setpoint that the PID will try to achieve
         :param sample_time: The time in seconds which the controller should wait before generating
             a new output value. The PID works best when it is constantly called (eg. during a
@@ -48,6 +62,7 @@ class PID(object):
         :param proportional_on_measurement: Whether the proportional term should be calculated on
             the input directly rather than on the error (which is the traditional way). Using
             proportional-on-measurement avoids overshoot for some types of systems.
+            DEPRECATED, please set Kpom directly instead of using Kp! 
         :param differential_on_measurement: Whether the differential term should be calculated on
             the input directly rather than on the error (which is the traditional way).
         :param error_map: Function to transform the error value in another constrained value.
@@ -60,19 +75,30 @@ class PID(object):
             output the PID should give when first calling it to avoid the PID outputting zero and
             moving the system away from the setpoint.
         """
+        # Keep proportional_on_measurement for backward compatibility, but don't allow to specify together with Kpom
+        if (Kpom != 0.0 and proportional_on_measurement):
+            raise ValueError('Parameter proportional_on_measurement is depricated, please only use Kpom={previous value of Kp}')
+        if (proportional_on_measurement):
+            Kpom = Kp
+            Kp = 0
+        
+        if (weightPom != None and weightPom <= 0):
+            raise ValueError('Please specify a positive value or None for weightPom')
+        
         self.Kp, self.Ki, self.Kd = Kp, Ki, Kd
+        self.Kpom, self.weightPom, self.fadePom = Kpom, weightPom, fadePom
         self.setpoint = setpoint
         self.sample_time = sample_time
 
         self._min_output, self._max_output = None, None
         self._auto_mode = auto_mode
-        self.proportional_on_measurement = proportional_on_measurement
         self.differential_on_measurement = differential_on_measurement
         self.error_map = error_map
 
         self._proportional = 0
         self._integral = 0
         self._derivative = 0
+        self._pom = 0
 
         self._last_time = None
         self._last_output = None
@@ -132,12 +158,23 @@ class PID(object):
             error = self.error_map(error)
 
         # Compute the proportional term
-        if not self.proportional_on_measurement:
-            # Regular proportional-on-error, simply set the proportional term
-            self._proportional = self.Kp * error
-        else:
-            # Add the proportional error on measurement to error_sum
-            self._proportional -= self.Kp * d_input
+        self._proportional = self.Kp * error
+
+        
+        if (self.Kpom != 0.0):
+            # Compute the proportional_on_measurement term
+            if (self.weightPom is None):
+                # Standard
+                self._pom = self._pom - self.Kpom * d_input
+            else:
+                # Weightened by reciprocal function
+                self._pom = self._pom - self.Kpom * d_input / (abs(error) + self.weightPom)
+
+            if (fadingAmout != 1.0):
+                # Fade out pom term and move to I term
+                fadingAmout = self.fadePom * self._pom
+                self._pom -= fadingAmout
+                self._integral += fadingAmout
 
         # Compute integral and derivative terms
         self._integral += self.Ki * error * dt
@@ -149,7 +186,7 @@ class PID(object):
             self._derivative = self.Kd * d_error / dt
 
         # Compute final output
-        output = self._proportional + self._integral + self._derivative
+        output = self._proportional + self._integral + self._derivative + self._pom
         output = _clamp(output, self.output_limits)
 
         # Keep track of state
@@ -166,7 +203,7 @@ class PID(object):
             'Kp={self.Kp!r}, Ki={self.Ki!r}, Kd={self.Kd!r}, '
             'setpoint={self.setpoint!r}, sample_time={self.sample_time!r}, '
             'output_limits={self.output_limits!r}, auto_mode={self.auto_mode!r}, '
-            'proportional_on_measurement={self.proportional_on_measurement!r}, '
+            'Kpom={self.Kpom!r}, weightPom={self.weightPom!r}, fadePom={self.fadePom!r}, '
             'differential_on_measurement={self.differential_on_measurement!r}, '
             'error_map={self.error_map!r}'
             ')'
@@ -178,7 +215,7 @@ class PID(object):
         The P-, I- and D-terms from the last computation as separate components as a tuple. Useful
         for visualizing what the controller is doing or when tuning hard-to-tune systems.
         """
-        return self._proportional, self._integral, self._derivative
+        return self._proportional, self._integral, self._derivative, self._pom
 
     @property
     def tunings(self):
@@ -260,6 +297,7 @@ class PID(object):
         self._proportional = 0
         self._integral = 0
         self._derivative = 0
+        self._pom = 0
 
         self._integral = _clamp(self._integral, self.output_limits)
 

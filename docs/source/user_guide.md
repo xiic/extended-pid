@@ -110,12 +110,18 @@ p, i, d = pid.components  # The separate terms are now in p, i, d
 
 ### Proportional on measurement
 
-To eliminate overshoot in certain types of systems, you can calculate the [proportional term directly on the measurement](http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/) instead of the error. This can be enabled like this:
+To eliminate overshoot in certain types of systems, you can calculate the [proportional term directly on the measurement](http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/) instead of the error. This can be set like this:
 
 ```python
-pid.proportional_on_measurement = True
+pid = PID(0, 0, 0, Kpom=1)
 ```
 
+This also supports other parameters:
+```python
+pid = PID(0, 0, 0, Kpom=1, weightPom=0.01, fadePom=0.001)
+```
+* `weightPom` The close this is to 0, the stronger the weight of Kpom around the setpoint.
+* `fadePom` Slowly fade out Kpom and redistribute to I. This is to prevent having the I term being stuck at the upper or lower limit.
 
 ### Differential on measurement
 
