@@ -238,7 +238,7 @@ class PID(object):
     def setpoint(self, setpoint):
         """Update the setpoint and reset Kpom if resetPomOnSetpointChange is True."""
         if self._setpoint != setpoint and self.resetPomOnSetpointChange:
-            self._integral -= self._pom
+            self._integral += self._pom
             self._pom = 0
             self._integral = _clamp(self._integral, self.output_limits)
         self._setpoint = setpoint
