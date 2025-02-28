@@ -13,6 +13,7 @@ class PID(object):
     Kpom: float
     weightPom: float
     fadePom: float
+    resetPomOnSetpointChange: bool
     setpoint: float
     sample_time: Optional[float]
     proportional_on_measurement: bool
@@ -27,6 +28,7 @@ class PID(object):
         Kpom: float = ...,
         weightPom: float = ...,
         fadePom: float = ...,
+        resetPomOnSetpointChange: bool = ...,
         setpoint: float = ...,
         sample_time: Optional[float] = ...,
         output_limits: _Limits = ...,

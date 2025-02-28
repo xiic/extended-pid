@@ -118,10 +118,11 @@ pid = PID(0, 0, 0, Kpom=1)
 
 This also supports other parameters:
 ```python
-pid = PID(0, 0, 0, Kpom=1, weightPom=0.01, fadePom=0.001)
+pid = PID(0, 0, 0, Kpom=1, weightPom=0.01, fadePom=0.001, resetPomOnSetpointChange=True)
 ```
 * `weightPom` The close this is to 0, the stronger the weight of Kpom around the setpoint.
 * `fadePom` Slowly fade out Kpom and redistribute to I. This is to prevent having the I term being stuck at the upper or lower limit.
+* `resetPomOnSetpointChange` If True, Kpom will be reset and shifted over to the I term when the setpoint changes. Defaults to True, as this is useful in most cases to "reinitialize" I and pom.
 
 ### Differential on measurement
 

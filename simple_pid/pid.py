@@ -20,6 +20,7 @@ class PID(object):
         Kpom=0.0,
         weightPom=None,
         fadePom=1,
+        resetPomOnSetpointChange=True,
         setpoint=0,
         sample_time=0.01,
         output_limits=(None, None),
@@ -38,15 +39,20 @@ class PID(object):
         :param Kd: The value for the derivative gain Kd
         :param Kpom: The value for the proportional_on_measurement gain
         :parameter weightPom: Increase weight of the proportional_on_measurement gain if the output
-            is close to the setpoint. Calculated as 1 / (abs(error) + weightPom).
-            Example: 0.01
+            is close to the setpoint. Calculated as 1 / (abs(error) + weightPom). The reciprocal
+            function was used as it was found to provide the best fitting rounding.            
             Small values give it a "boost" just before it reaches the setpoint (and just after).
             Large values lessen the difference between closer/farther from the setpoint (and reduce
             Kpom across the whole range).
-            Set to None to disable.
+            Default: None (disabled)
+            Example: 0.01
         :parameter fadePom: Factor to be use to slowly fade out the pom value and shift it over to
             the I term.
+            Default: 0
             Example: 0.001
+        :param resetPomOnSetpointChange: If True, Kpom will be reset and shifted over to the I
+            term when the setpoint changes.
+            Default: True
         :param setpoint: The initial setpoint that the PID will try to achieve
         :param sample_time: The time in seconds which the controller should wait before generating
             a new output value. The PID works best when it is constantly called (eg. during a
@@ -85,9 +91,10 @@ class PID(object):
         if (weightPom != None and weightPom <= 0):
             raise ValueError('Please specify a positive value or None for weightPom')
         
+        self.resetPomOnSetpointChange = resetPomOnSetpointChange
         self.Kp, self.Ki, self.Kd = Kp, Ki, Kd
         self.Kpom, self.weightPom, self.fadePom = Kpom, weightPom, fadePom
-        self.setpoint = setpoint
+        self._setpoint = setpoint
         self.sample_time = sample_time
 
         self._min_output, self._max_output = None, None
@@ -221,6 +228,20 @@ class PID(object):
     def tunings(self):
         """The tunings used by the controller as a tuple: (Kp, Ki, Kd)."""
         return self.Kp, self.Ki, self.Kd
+
+    @property
+    def setpoint(self):
+        """The target value that the PID controller is trying to achieve."""
+        return self._setpoint
+    
+    @setpoint.setter
+    def setpoint(self, setpoint):
+        """Update the setpoint and reset Kpom if resetPomOnSetpointChange is True."""
+        if self._setpoint != setpoint and self.resetPomOnSetpointChange:
+            self._integral -= self._pom
+            self._pom = 0
+            self._integral = _clamp(self._integral, self.output_limits)
+        self._setpoint = setpoint
 
     @tunings.setter
     def tunings(self, tunings):
