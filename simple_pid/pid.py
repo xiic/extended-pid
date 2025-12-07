@@ -1,11 +1,17 @@
-def _clamp(value, limits):
+def _clamp(value, limits, offset = 0):
     lower, upper = limits
+    
+    # If there is a negative offset, allow higher values for upper bound.
+    # If there is a positive offset, allow smaller values for lower bound.
+    lower_with_offset = lower + max(0, offset)
+    upper_with_offset = upper - min(0, offset)
+
     if value is None:
         return None
-    elif (upper is not None) and (value > upper):
-        return upper
-    elif (lower is not None) and (value < lower):
-        return lower
+    elif (upper is not None) and (value > upper_with_offset):
+        return upper_with_offset
+    elif (lower is not None) and (value < lower_with_offset):
+        return lower_with_offset
     return value
 
 
@@ -183,9 +189,10 @@ class PID(object):
                 self._pom -= fadingAmout
                 self._integral += fadingAmout
 
-        # Compute integral and derivative terms
+        # Compute integral and derivative terms:
         self._integral += self.Ki * error * dt
-        self._integral = _clamp(self._integral, self.output_limits)  # Avoid integral windup
+        # Avoid integral windup (adjusted by pom offset):
+        self._integral = _clamp(self._integral, self.output_limits, self._pom)
 
         if self.differential_on_measurement:
             self._derivative = -self.Kd * d_input / dt
