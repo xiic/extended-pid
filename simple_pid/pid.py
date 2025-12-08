@@ -170,8 +170,6 @@ class PID(object):
 
         # Compute integral and derivative terms:
         self._integral += self.Ki * error * dt
-        # Avoid integral windup (adjusted by pom offset):
-        self._integral = _clamp(self._integral, self.output_limits, self._pom)
         
         if (self.Kpom != 0.0):
             # Compute the proportional_on_measurement term
@@ -183,8 +181,13 @@ class PID(object):
                 self._pom = self._pom - self.Kpom * d_input / (abs(error) + self.weightPom)
 
             if (self.fadePom != 1.0):
-                # Fade out pom term
-                self._pom -= self.fadePom * self._pom
+                # Fade out pom term and move to I term
+                fadingAmout = self.fadePom * self._pom
+                self._pom -= fadingAmout
+                self._integral += fadingAmout
+        
+        # Avoid integral windup (adjusted by pom offset):
+        self._integral = _clamp(self._integral, self.output_limits, self._pom)
 
         if self.differential_on_measurement:
             self._derivative = -self.Kd * d_input / dt
