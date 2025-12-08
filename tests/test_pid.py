@@ -227,13 +227,13 @@ def test_clamp():
 def test_clamp_offset():
     from simple_pid.pid import _clamp
 
-    # Allow higher values with negative offset
-    assert _clamp(100, (-10, 10), -1) == 11
-    assert _clamp(-100, (-10, 10), -1) == -10
+    # Lower bound: Add offset
+    assert _clamp(-100, (-10, 10), 1) == -9
+    assert _clamp(-100, (-10, 10), -1) == -11
 
-    # Allow lower values with positive offset
-    assert _clamp(100, (-10, 10), 1) == 10
-    assert _clamp(-100, (-10, 10), 1) == -11
+    # Upper bound: Substract offset
+    assert _clamp(100, (-10, 10), 1) == 9
+    assert _clamp(100, (-10, 10), -1) == 11
 
 def test_repr():
     pid = PID(1, 2, 3, setpoint=10)

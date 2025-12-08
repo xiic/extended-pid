@@ -1,10 +1,9 @@
 def _clamp(value, limits, offset = 0):
     lower, upper = limits
     
-    # If there is a negative offset, allow higher values for upper bound.
-    # If there is a positive offset, allow smaller values for lower bound.
-    lower_with_offset = lower + max(0, offset)
-    upper_with_offset = upper - min(0, offset)
+    # If there is an offset, adjust lower/upper bound
+    lower_with_offset = lower + offset
+    upper_with_offset = upper - offset
 
     if value is None:
         return None
@@ -173,6 +172,10 @@ class PID(object):
         # Compute the proportional term
         self._proportional = self.Kp * error
 
+        # Compute integral and derivative terms:
+        self._integral += self.Ki * error * dt
+        # Avoid integral windup (adjusted by pom offset):
+        self._integral = _clamp(self._integral, self.output_limits, self._pom)
         
         if (self.Kpom != 0.0):
             # Compute the proportional_on_measurement term
@@ -184,15 +187,8 @@ class PID(object):
                 self._pom = self._pom - self.Kpom * d_input / (abs(error) + self.weightPom)
 
             if (self.fadePom != 1.0):
-                # Fade out pom term and move to I term
-                fadingAmout = self.fadePom * self._pom
-                self._pom -= fadingAmout
-                self._integral += fadingAmout
-
-        # Compute integral and derivative terms:
-        self._integral += self.Ki * error * dt
-        # Avoid integral windup (adjusted by pom offset):
-        self._integral = _clamp(self._integral, self.output_limits, self._pom)
+                # Fade out pom term
+                self._pom -= self.fadePom * self._pom
 
         if self.differential_on_measurement:
             self._derivative = -self.Kd * d_input / dt
