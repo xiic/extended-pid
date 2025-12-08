@@ -227,11 +227,11 @@ def test_clamp():
 def test_clamp_offset():
     from simple_pid.pid import _clamp
 
-    # Lower bound: Add offset
-    assert _clamp(-100, (-10, 10), 1) == -9
-    assert _clamp(-100, (-10, 10), -1) == -11
+    # Lower bound offset
+    assert _clamp(-100, (-10, 10), 1) == -11
+    assert _clamp(-100, (-10, 10), -1) == -9
 
-    # Upper bound: Substract offset
+    # Upper bound offset
     assert _clamp(100, (-10, 10), 1) == 9
     assert _clamp(100, (-10, 10), -1) == 11
 

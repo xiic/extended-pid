@@ -2,7 +2,7 @@ def _clamp(value, limits, offset = 0):
     lower, upper = limits
     
     # If there is an offset, adjust lower/upper bound
-    lower_with_offset = lower + offset
+    lower_with_offset = lower - offset
     upper_with_offset = upper - offset
 
     if value is None:
