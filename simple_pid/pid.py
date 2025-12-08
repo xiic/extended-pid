@@ -1,16 +1,12 @@
 def _clamp(value, limits, offset = 0):
     lower, upper = limits
-    
-    # If there is an offset, adjust lower/upper bound
-    lower_with_offset = lower - offset
-    upper_with_offset = upper - offset
 
     if value is None:
         return None
-    elif (upper is not None) and (value > upper_with_offset):
-        return upper_with_offset
-    elif (lower is not None) and (value < lower_with_offset):
-        return lower_with_offset
+    elif (upper is not None) and (value > upper - offset):
+        return upper - offset
+    elif (lower is not None) and (value < lower - offset):
+        return lower - offset
     return value
 
 
