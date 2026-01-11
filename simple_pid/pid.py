@@ -130,7 +130,7 @@ class PID(object):
         self.reset()
 
         # Set initial state of the controller
-        self._integral = _clamp(starting_output, output_limits)
+        self._integral = _clamp(starting_output, output_limits, self._pom)
 
     def __call__(self, input_, dt=None):
         """
@@ -242,7 +242,7 @@ class PID(object):
         if self._setpoint != setpoint and self.resetPomOnSetpointChange:
             self._integral += self._pom
             self._pom = 0
-            self._integral = _clamp(self._integral, self.output_limits)
+            self._integral = _clamp(self._integral, self.output_limits, self._pom)
         self._setpoint = setpoint
 
     @tunings.setter
@@ -279,7 +279,7 @@ class PID(object):
             self.reset()
 
             self._integral = last_output if (last_output is not None) else 0
-            self._integral = _clamp(self._integral, self.output_limits)
+            self._integral = _clamp(self._integral, self.output_limits, self._pom)
 
         self._auto_mode = enabled
 
@@ -321,7 +321,7 @@ class PID(object):
         self._derivative = 0
         self._pom = 0
 
-        self._integral = _clamp(self._integral, self.output_limits)
+        self._integral = _clamp(self._integral, self.output_limits, self._pom)
 
         self._last_time = self.time_fn()
         self._last_output = None
