@@ -307,7 +307,6 @@ class PID(object):
         self._min_output = min_output
         self._max_output = max_output
 
-        self._integral = _clamp(self._integral, self.output_limits)
         self._last_output = _clamp(self._last_output, self.output_limits)
 
     def reset(self):
